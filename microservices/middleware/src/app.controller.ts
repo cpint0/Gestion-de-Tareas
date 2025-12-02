@@ -7,6 +7,8 @@ export class AppController {
   private readonly AUTH_URL = 'http://localhost:3001';
   private readonly TASKS_PRIMARY_URL = 'http://localhost:3002';
   private readonly TASKS_MIRROR_URL = 'http://localhost:3003';
+  private readonly TASKS_EDIT_PRIMARY_URL = 'http://localhost:3004';
+  private readonly TASKS_EDIT_MIRROR_URL = 'http://localhost:3005';
 
   constructor(private readonly httpService: HttpService) {}
 
@@ -27,7 +29,7 @@ export class AppController {
   }
 
   @Post('auth/login')
-  async login(@Body() body: any) {  
+  async login(@Body() body: any) {
     try {
       const response = await firstValueFrom(
         this.httpService.post(`${this.AUTH_URL}/login`, body)
@@ -41,108 +43,104 @@ export class AppController {
     }
   }
 
-  // ==================== TASKS (CON REDUNDANCIA) ====================
+  // ==================== TASKS (Crear y Listar) ====================
   @Get('tasks')
   async getTasks(@Query('userEmail') userEmail: string) {
     return this.handleTasksRedundancy('get', '/tasks', null, { userEmail });
   }
 
-  @Get('tasks/:id')
-  async getTask(@Param('id') id: string) {
-    return this.handleTasksRedundancy('get', `/tasks/${id}`);
-  }
-
   @Post('tasks')
   async createTask(@Body() body: any) {
-    // INTENTO 1: Servicio Principal
     try {
-      console.log(`[PRINCIPAL] Intentando crear tarea...`);
-      
-      const bodyWithTag = {
-        ...body,
-        procesadoPor: 'PRINCIPAL'
-      };
-      
+      console.log(`[TASKS PRINCIPAL] Intentando crear tarea...`);
+      const bodyWithTag = { ...body, procesadoPor: 'PRINCIPAL' };
       const response = await firstValueFrom(
         this.httpService.post(`${this.TASKS_PRIMARY_URL}/tasks`, bodyWithTag)
       );
-      console.log('[PRINCIPAL] ✅ Tarea creada exitosamente');
+      console.log('[TASKS PRINCIPAL] ✅ Tarea creada');
       return response.data;
     } catch (primaryError: any) {
-      console.warn('[PRINCIPAL] ❌ Falló. Intentando con el Espejo...');
-
-      // INTENTO 2: Servicio Espejo
+      console.warn('[TASKS PRINCIPAL] ❌ Falló. Intentando Espejo...');
       try {
-        const bodyWithTag = {
-          ...body,
-          procesadoPor: 'ESPEJO'
-        };
-        
+        const bodyWithTag = { ...body, procesadoPor: 'ESPEJO' };
         const response = await firstValueFrom(
           this.httpService.post(`${this.TASKS_MIRROR_URL}/tasks`, bodyWithTag)
         );
-        console.log('[ESPEJO] ✅ Tarea creada exitosamente');
+        console.log('[TASKS ESPEJO] ✅ Tarea creada');
         return response.data;
       } catch (mirrorError: any) {
-        console.error('[ESPEJO] ❌ También falló. Ambos servicios caídos.');
-        throw new HttpException(
-          'Task Service Unavailable',
-          HttpStatus.SERVICE_UNAVAILABLE
-        );
+        throw new HttpException('Tasks Service Unavailable', HttpStatus.SERVICE_UNAVAILABLE);
       }
     }
   }
 
+  // ==================== TASKS EDIT (Obtener, Editar y Eliminar) ====================
+  @Get('tasks/:id')
+  async getTask(@Param('id') id: string) {
+    return this.handleTasksEditRedundancy('get', `/tasks/${id}`);
+  }
+
   @Put('tasks/:id')
   async updateTask(@Param('id') id: string, @Body() body: any) {
-    return this.handleTasksRedundancy('put', `/tasks/${id}`, body);
+    return this.handleTasksEditRedundancy('put', `/tasks/${id}`, body);
   }
 
   @Delete('tasks/:id')
   async deleteTask(@Param('id') id: string) {
-    return this.handleTasksRedundancy('delete', `/tasks/${id}`);
+    return this.handleTasksEditRedundancy('delete', `/tasks/${id}`);
   }
 
-  // ==================== LÓGICA DE FAILOVER ====================
+  // ==================== FAILOVER - TASKS ====================
   private async handleTasksRedundancy(
-    method: 'get' | 'post' | 'put' | 'delete',
+    method: 'get' | 'post',
     endpoint: string,
     data?: any,
     params?: any
   ) {
     try {
-      console.log(`[PRINCIPAL] Intentando: ${this.TASKS_PRIMARY_URL}${endpoint}`);
+      console.log(`[TASKS PRINCIPAL] ${this.TASKS_PRIMARY_URL}${endpoint}`);
       const response = await firstValueFrom(
-        this.httpService.request({
-          method,
-          url: `${this.TASKS_PRIMARY_URL}${endpoint}`,
-          data,
-          params,
-        })
+        this.httpService.request({ method, url: `${this.TASKS_PRIMARY_URL}${endpoint}`, data, params })
       );
-      console.log('[PRINCIPAL] ✅ Respuesta exitosa');
+      console.log('[TASKS PRINCIPAL] ✅ OK');
       return response.data;
-    } catch (primaryError: any) {
-      console.warn('[PRINCIPAL] ❌ Falló. Intentando con el Espejo...');
-
+    } catch (error: any) {
+      console.warn('[TASKS PRINCIPAL] ❌ Falló. Intentando Espejo...');
       try {
-        console.log(`[ESPEJO] Intentando: ${this.TASKS_MIRROR_URL}${endpoint}`);
         const response = await firstValueFrom(
-          this.httpService.request({
-            method,
-            url: `${this.TASKS_MIRROR_URL}${endpoint}`,
-            data,
-            params,
-          })
+          this.httpService.request({ method, url: `${this.TASKS_MIRROR_URL}${endpoint}`, data, params })
         );
-        console.log('[ESPEJO] ✅ Respuesta exitosa');
+        console.log('[TASKS ESPEJO] ✅ OK');
         return response.data;
       } catch (mirrorError: any) {
-        console.error('[ESPEJO] ❌ También falló.');
-        throw new HttpException(
-          'Task Service Unavailable',
-          HttpStatus.SERVICE_UNAVAILABLE
+        throw new HttpException('Tasks Service Unavailable', HttpStatus.SERVICE_UNAVAILABLE);
+      }
+    }
+  }
+
+  // ==================== FAILOVER - TASKS EDIT ====================
+  private async handleTasksEditRedundancy(
+    method: 'get' | 'put' | 'delete',
+    endpoint: string,
+    data?: any
+  ) {
+    try {
+      console.log(`[TASKS EDIT PRINCIPAL] ${this.TASKS_EDIT_PRIMARY_URL}${endpoint}`);
+      const response = await firstValueFrom(
+        this.httpService.request({ method, url: `${this.TASKS_EDIT_PRIMARY_URL}${endpoint}`, data })
+      );
+      console.log('[TASKS EDIT PRINCIPAL] ✅ OK');
+      return response.data;
+    } catch (error: any) {
+      console.warn('[TASKS EDIT PRINCIPAL] ❌ Falló. Intentando Espejo...');
+      try {
+        const response = await firstValueFrom(
+          this.httpService.request({ method, url: `${this.TASKS_EDIT_MIRROR_URL}${endpoint}`, data })
         );
+        console.log('[TASKS EDIT ESPEJO] ✅ OK');
+        return response.data;
+      } catch (mirrorError: any) {
+        throw new HttpException('Tasks Edit Service Unavailable', HttpStatus.SERVICE_UNAVAILABLE);
       }
     }
   }
