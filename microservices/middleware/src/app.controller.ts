@@ -27,7 +27,7 @@ export class AppController {
   }
 
   @Post('auth/login')
-  async login(@Body() body: any) {  // <-- AQUÍ ESTABA EL ERROR: faltaba ()
+  async login(@Body() body: any) {  
     try {
       const response = await firstValueFrom(
         this.httpService.post(`${this.AUTH_URL}/login`, body)
