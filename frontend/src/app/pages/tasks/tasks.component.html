@@ -1,0 +1,103 @@
+<div class="tasks-container">
+  <div class="tasks-header">
+    <div class="header-content">
+      <h1>Gestor de Tareas</h1>
+      <div class="user-info">
+        <span class="user-name">{{ currentUser?.name || currentUser?.email }}</span>
+        <button class="btn btn-logout" (click)="logout()">Cerrar Sesión</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="tasks-wrapper">
+    <div class="tasks-main">
+      <!-- Crear Tarea -->
+      <div class="create-task-section">
+        <h2>Nueva Tarea</h2>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="task-form">
+          <div class="form-group">
+            <label for="title">Título de la Tarea</label>
+            <input
+              type="text"
+              id="title"
+              formControlName="title"
+              class="form-control"
+              placeholder="Ej: Comprar groceries"
+            />
+            <div *ngIf="submitted && f['title'].errors" class="error-message">
+              <small *ngIf="f['title'].errors['required']">El título es requerido</small>
+              <small *ngIf="f['title'].errors['minlength']">Mínimo 3 caracteres</small>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="description">Descripción (Opcional)</label>
+            <textarea
+              id="description"
+              formControlName="description"
+              class="form-control"
+              placeholder="Describe tu tarea..."
+              rows="3"
+            ></textarea>
+          </div>
+
+          <div *ngIf="error" class="alert alert-danger">
+            {{ error }}
+          </div>
+
+          <div *ngIf="success" class="alert alert-success">
+            {{ success }}
+          </div>
+
+          <button type="submit" class="btn btn-primary" [disabled]="loading">
+            <span *ngIf="loading" class="spinner"></span>
+            {{ loading ? 'Creando...' : 'Crear Tarea' }}
+          </button>
+        </form>
+      </div>
+
+      <!-- Lista de Tareas -->
+      <div class="tasks-list-section">
+        <h2>Mis Tareas</h2>
+        
+        <div *ngIf="loading && tasks.length === 0" class="loading">
+          Cargando tareas...
+        </div>
+
+        <div *ngIf="!loading && tasks.length === 0" class="no-tasks">
+          <p>No tienes tareas aún. ¡Crea una para comenzar!</p>
+        </div>
+
+        <div *ngIf="tasks.length > 0" class="tasks-list">
+          <div *ngFor="let task of tasks" class="task-item" [class.completed]="task.completed">
+            <div class="task-content">
+              <div class="task-checkbox">
+                <input
+                  type="checkbox"
+                  [checked]="task.completed"
+                  (change)="toggleTask(task)"
+                  [id]="'task-' + task.id"
+                />
+              </div>
+              <div class="task-details">
+                <h3 class="task-title">{{ task.title }}</h3>
+                <p *ngIf="task.description" class="task-description">{{ task.description }}</p>
+                <small class="task-date">{{ task.createdAt | date:'short' }}</small>
+              </div>
+            </div>
+            <div class="task-actions">
+              <button class="btn btn-danger" (click)="deleteTask(task.id)">
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="tasks.length > 0" class="tasks-stats">
+          <span>Total: {{ tasks.length }}</span>
+          <span>Completadas: {{ completedCount }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
