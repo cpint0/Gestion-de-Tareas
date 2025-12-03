@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Body, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, Put, Delete, Param } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Task } from './entities/task.entity';
 import { CreateTaskDto } from './dto/create-task.dto';
+import { UpdateTaskDto } from './dto/update-task.dto';
 
 @Controller('tasks')
 export class AppController {
@@ -25,5 +26,21 @@ export class AppController {
     const newTask = this.tasksRepository.create(createTaskDto);
     await this.tasksRepository.save(newTask);
     return { message: 'Task created successfully', task: newTask };
+  }
+
+  @Put(':id')
+  async updateTask(
+    @Param('id') id: number,
+    @Body() updateTaskDto: UpdateTaskDto,
+  ) {
+    await this.tasksRepository.update(id, updateTaskDto);
+    const updatedTask = await this.tasksRepository.findOne({ where: { id } });
+    return { message: 'Task updated successfully', task: updatedTask };
+  }
+
+  @Delete(':id')
+  async deleteTask(@Param('id') id: number) {
+    const result = await this.tasksRepository.delete(id);
+    return { message: 'Task deleted successfully', affected: result.affected };
   }
 }

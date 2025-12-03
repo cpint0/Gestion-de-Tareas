@@ -2,7 +2,7 @@ import { Controller, Get, Post, Put, Delete, Body, Param, Query, HttpException, 
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 
-@Controller()
+@Controller('api')
 export class AppController {
   private readonly AUTH_URL = 'http://localhost:3001';
   private readonly TASKS_PRIMARY_URL = 'http://localhost:3002';
@@ -15,12 +15,15 @@ export class AppController {
   // ==================== AUTH ====================
   @Post('auth/register')
   async register(@Body() body: any) {
+    console.log('[MIDDLEWARE] POST /api/auth/register - Intentando registrar usuario');
     try {
       const response = await firstValueFrom(
-        this.httpService.post(`${this.AUTH_URL}/register`, body)
+        this.httpService.post(`${this.AUTH_URL}/auth/register`, body)
       );
+      console.log('[MIDDLEWARE] ✅ Registro exitoso');
       return response.data;
     } catch (error: any) {
+      console.error('[MIDDLEWARE] ❌ Error en registro:', error.message);
       throw new HttpException(
         error.response?.data || 'Auth Service Error',
         error.response?.status || HttpStatus.BAD_GATEWAY
@@ -30,12 +33,15 @@ export class AppController {
 
   @Post('auth/login')
   async login(@Body() body: any) {
+    console.log('[MIDDLEWARE] POST /api/auth/login - Intentando login');
     try {
       const response = await firstValueFrom(
-        this.httpService.post(`${this.AUTH_URL}/login`, body)
+        this.httpService.post(`${this.AUTH_URL}/auth/login`, body)
       );
+      console.log('[MIDDLEWARE] ✅ Login exitoso');
       return response.data;
     } catch (error: any) {
+      console.error('[MIDDLEWARE] ❌ Error en login:', error.message);
       throw new HttpException(
         error.response?.data || 'Auth Service Error',
         error.response?.status || HttpStatus.BAD_GATEWAY

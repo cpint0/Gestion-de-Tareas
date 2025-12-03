@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service'; 
@@ -6,15 +7,20 @@ import { User } from './entities/user.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot({
-      type: 'mysql',
-      host: 'localhost',
-      port: 3306,
-      username: 'root',
-      password: '',
-      database: 'gestion_tareas_global', 
-      entities: [User],
-      synchronize: true, 
+    ConfigModule.forRoot({ isGlobal: true }),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        type: 'mysql',
+        host: config.get('DB_HOST', 'localhost'),
+        port: parseInt(config.get('DB_PORT', '3306'), 10),
+        username: config.get('DB_USERNAME', 'devuser'),
+        password: config.get('DB_PASSWORD', 'devpass'),
+        database: config.get('DB_NAME', 'gestion_tareas'),
+        entities: [User],
+        synchronize: true,
+      }),
     }),
     TypeOrmModule.forFeature([User]),
   ],

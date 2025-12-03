@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { Task } from './entities/task.entity';
@@ -9,15 +9,19 @@ import { Task } from './entities/task.entity';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    TypeOrmModule.forRoot({
-      type: 'mysql',
-      host: process.env.DB_HOST,
-      port: parseInt(process.env.DB_PORT || '3306'),
-      username: process.env.DB_USERNAME,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
-      entities: [Task],
-      synchronize: true,
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        type: 'mysql',
+        host: config.get('DB_HOST', 'localhost'),
+        port: parseInt(config.get('DB_PORT', '3306'), 10),
+        username: config.get('DB_USERNAME', 'devuser'),
+        password: config.get('DB_PASSWORD', 'devpass'),
+        database: config.get('DB_NAME', 'gestion_tareas'),
+        entities: [Task],
+        synchronize: true,
+      }),
     }),
     TypeOrmModule.forFeature([Task]),
   ],

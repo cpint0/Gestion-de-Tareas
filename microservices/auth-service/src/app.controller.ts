@@ -5,7 +5,7 @@ import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
 
-@Controller()
+@Controller('auth')
 export class AppController {
   
   constructor(
